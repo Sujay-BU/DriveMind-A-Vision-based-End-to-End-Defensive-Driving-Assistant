@@ -1,0 +1,32 @@
+# Diagnostic collection: does the expert actually satisfy Table 1?
+#
+# One episode, one town, no map switching, and -- crucially --
+# ``allow_infractions: true``. Rejecting on the first violation answers only
+# "yes/no"; running the episode to completion with infractions permitted
+# answers "which metrics fail, how often, and by how much", which is what you
+# need to fix the expert.
+#
+# Set allow_infractions back to false for real collection, where Chapter 3's
+# hard-constraint rule applies.
+out_dir: data/dav_smoke
+episodes: 1
+frames_per_episode: 400
+image_width: 400
+image_height: 225
+fps: 20
+num_vehicles: 40
+num_pedestrians: 20
+warmup_frames: 40
+# Town10HD is the map CARLA boots into, so this validates with zero map loads
+# (12+ minutes each on this machine's disk). It is also denser than Town01,
+# which makes it the harder test for the crossing-conflict check (D30).
+towns: ["Town01"]
+seed: 1234
+max_attempts_per_episode: 1
+jpeg_quality: 85
+carla_host: 127.0.0.1
+carla_port: 2000
+traffic_manager_port: 8000
+timeout: 120.0
+allow_infractions: true
+trace_csv: true

@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DAV — Defensive Autonomous Vehicle training</title>
+<style>
+:root {
+  color-scheme: light;
+  --page:           #f9f9f7;
+  --surface-1:      #fcfcfb;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --grid:           #e1e0d9;
+  --axis:           #c3c2b7;
+  --border:         rgba(11,11,11,0.10);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --good:     #0ca30c;
+  --warning:  #fab219;
+  --serious:  #ec835a;
+  --critical: #d03b3b;
+  --success-text: #006300;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page:           #0d0d0d;
+    --surface-1:      #1a1a19;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --axis:           #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --success-text: #0ca30c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page:           #0d0d0d;
+  --surface-1:      #1a1a19;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #898781;
+  --grid:           #2c2c2a;
+  --axis:           #383835;
+  --border:         rgba(255,255,255,0.10);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --success-text: #0ca30c;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+a { color: var(--series-1); }
+
+header {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  padding: 12px 20px;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+header h1 { font-size: 15px; margin: 0 8px 0 0; font-weight: 650; letter-spacing: -0.01em; }
+header .spacer { flex: 1; }
+
+select, button {
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+button:hover, select:hover { border-color: var(--axis); }
+button[aria-pressed="true"] { background: var(--series-1); color: #fff; border-color: transparent; }
+
+.status { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 13px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+.dot.running { background: var(--good); }
+.dot.finished { background: var(--series-1); }
+.dot.interrupted { background: var(--warning); }
+
+main { padding: 20px; max-width: 1600px; margin: 0 auto; }
+section { margin-bottom: 28px; }
+h2 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-muted); font-weight: 650; margin: 0 0 12px;
+}
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.tile {
+  background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+}
+.tile .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+.tile .value { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+.tile .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 16px; }
+.card {
+  background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px;
+  overflow: hidden;
+}
+.card h3 { font-size: 14px; margin: 0 0 2px; font-weight: 600; }
+.card .caption { font-size: 12px; color: var(--text-secondary); margin: 0 0 12px; }
+.card .chart-wrap { position: relative; overflow-x: auto; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0 0; font-size: 12px; color: var(--text-secondary); }
+.legend span.item { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+svg { display: block; }
+svg text { font: 11px system-ui, -apple-system, sans-serif; fill: var(--text-muted); }
+svg .tick-label { font-variant-numeric: tabular-nums; }
+
+.tooltip {
+  position: absolute; pointer-events: none; opacity: 0;
+  transform: translate(-50%, -100%);
+  background: var(--surface-1); color: var(--text-primary);
+  border: 1px solid var(--axis); border-radius: 8px;
+  padding: 8px 10px; font-size: 12px; white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.14); transition: opacity .08s;
+  z-index: 5;
+}
+.tooltip .row { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+.tooltip .row b { font-variant-numeric: tabular-nums; font-weight: 600; margin-left: 10px; }
+.tooltip .head { color: var(--text-secondary); margin-bottom: 4px; }
+
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; font-variant-numeric: normal; }
+th { color: var(--text-secondary); font-weight: 600; font-size: 12px; }
+tbody tr:hover { background: color-mix(in srgb, var(--series-1) 6%, transparent); }
+
+.table-wrap { overflow-x: auto; }
+.hidden { display: none !important; }
+.empty { color: var(--text-muted); font-size: 13px; padding: 24px 0; text-align: center; }
+
+.pill {
+  display: inline-block; padding: 2px 8px; border-radius: 99px;
+  font-size: 11px; font-weight: 600; border: 1px solid var(--border);
+}
+.pill.pass { color: var(--success-text); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
+.pill.fail { color: var(--critical); border-color: color-mix(in srgb, var(--critical) 40%, transparent); }
+
+.videos { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; }
+.videos video { width: 100%; border-radius: 8px; background: #000; }
+.videos .meta { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DAV</h1>
+  <select id="run-select" aria-label="Run"></select>
+  <span class="status"><span class="dot" id="status-dot"></span><span id="status-text">—</span></span>
+  <span class="spacer"></span>
+  <button id="table-toggle" aria-pressed="false" title="Show the numbers behind every chart">Table view</button>
+  <button id="live-toggle" aria-pressed="true">Live</button>
+  <button id="theme-toggle" title="Toggle light/dark">Theme</button>
+</header>
+
+<main>
+  <section id="tiles-section">
+    <h2>Run summary</h2>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <section>
+    <h2>Training</h2>
+    <div class="grid" id="charts"></div>
+  </section>
+
+  <section id="safety-section">
+    <h2>Defensive-driving compliance</h2>
+    <div class="grid" id="safety-charts"></div>
+  </section>
+
+  <section id="bench-section" class="hidden">
+    <h2>Bench2Drive</h2>
+    <div class="card" id="bench-card"></div>
+  </section>
+
+  <section id="dataset-section" class="hidden">
+    <h2>Dataset</h2>
+    <div class="card" id="dataset-card"></div>
+  </section>
+
+  <section id="videos-section" class="hidden">
+    <h2>Exported episodes</h2>
+    <div class="videos" id="videos"></div>
+  </section>
+
+  <section>
+    <h2>All runs</h2>
+    <div class="card table-wrap"><table id="runs-table"></table></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
+const SERIES = ["--series-1","--series-2","--series-3","--series-4","--series-5","--series-6"];
+const state = {
+  run: null,
+  offset: 0,
+  train: [],      // records with loss/total
+  val: [],        // records with val/loss/total
+  events: [],
+  manifest: null,
+  live: true,
+  tableView: false,
+};
+
+const $ = (id) => document.getElementById(id);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const fmt = (v, d = 3) => (v === null || v === undefined || Number.isNaN(v)) ? "—" : (+v).toFixed(d);
+const fmtInt = (v) => (v === null || v === undefined) ? "—" : (+v).toLocaleString();
+
+// ---------------------------------------------------------------------------
+// Chart primitives — inline SVG, crosshair tooltip, no external libraries
+// ---------------------------------------------------------------------------
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs = {}, parent = null) {
+  const node = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  if (parent) parent.appendChild(node);
+  return node;
+}
+
+/**
+ * Format an axis tick.
+ *
+ * Naive trailing-zero stripping (`String(t).replace(/\.?0+$/, "")`) is wrong:
+ * it eats significant zeros in whole numbers, rendering 20 as "2" and 60 as
+ * "6". Rounding to a scale-appropriate number of decimals and letting
+ * parseFloat drop the insignificant zeros only ever touches digits after the
+ * decimal point.
+ */
+function axisLabel(t) {
+  const a = Math.abs(t);
+  if (a !== 0 && (a >= 10000 || a < 0.001)) return t.toExponential(1);
+  const decimals = a >= 100 ? 0 : a >= 1 ? 2 : 4;
+  return parseFloat(t.toFixed(decimals)).toString();
+}
+
+function niceTicks(min, max, count = 5) {
+  if (!isFinite(min) || !isFinite(max)) return [0, 1];
+  if (min === max) { const p = Math.abs(min) || 1; min -= p * 0.1; max += p * 0.1; }
+  const raw = (max - min) / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const norm = raw / mag;
+  const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
+  const out = [];
+  for (let t = Math.ceil(min / step) * step; t <= max + step * 1e-9; t += step) out.push(t);
+  return out.length >= 2 ? out : [min, max];
+}
+
+/**
+ * Multi-series line chart with a shared-x crosshair tooltip.
+ * series: [{ name, color, points: [[x, y], ...] }]
+ */
+function lineChart(container, series, opts = {}) {
+  container.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "chart-wrap";
+  container.appendChild(wrap);
+
+  const W = Math.max(opts.width || container.clientWidth || 460, 320);
+  const H = opts.height || 220;
+  const M = { top: 10, right: 14, bottom: 26, left: 52 };
+  const iw = W - M.left - M.right, ih = H - M.top - M.bottom;
+
+  const live = series.filter(s => s.points.length > 0);
+  if (!live.length) { wrap.innerHTML = '<div class="empty">No data yet</div>'; return; }
+
+  const xs = live.flatMap(s => s.points.map(p => p[0]));
+  const ys = live.flatMap(s => s.points.map(p => p[1])).filter(Number.isFinite);
+  let x0 = Math.min(...xs), x1 = Math.max(...xs);
+  let y0 = Math.min(...ys), y1 = Math.max(...ys);
+  if (opts.zeroBase) y0 = Math.min(0, y0);
+  if (x0 === x1) x1 = x0 + 1;
+  const yTicks = niceTicks(y0, y1, 4);
+  y0 = Math.min(y0, yTicks[0]); y1 = Math.max(y1, yTicks[yTicks.length - 1]);
+
+  const sx = (x) => M.left + (x - x0) / (x1 - x0) * iw;
+  const sy = (y) => M.top + ih - (y - y0) / (y1 - y0 || 1) * ih;
+
+  const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`,
+                          role: "img", "aria-label": opts.title || "chart" }, wrap);
+
+  // Recessive grid, then the baseline.
+  for (const t of yTicks) {
+    el("line", { x1: M.left, x2: M.left + iw, y1: sy(t), y2: sy(t),
+                 stroke: css("--grid"), "stroke-width": 1 }, svg);
+    const label = el("text", { x: M.left - 8, y: sy(t) + 4, "text-anchor": "end",
+                               class: "tick-label" }, svg);
+    label.textContent = axisLabel(t);
+  }
+  el("line", { x1: M.left, x2: M.left + iw, y1: M.top + ih, y2: M.top + ih,
+               stroke: css("--axis"), "stroke-width": 1 }, svg);
+
+  const xTicks = niceTicks(x0, x1, 5);
+  for (const t of xTicks) {
+    if (t < x0 || t > x1) continue;
+    const label = el("text", { x: sx(t), y: H - 8, "text-anchor": "middle", class: "tick-label" }, svg);
+    label.textContent = Math.round(t).toLocaleString();
+  }
+
+  // 2px lines, in fixed series order.
+  for (const s of live) {
+    const d = s.points.filter(p => Number.isFinite(p[1]))
+      .map((p, i) => `${i ? "L" : "M"}${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join("");
+    if (d) el("path", { d, fill: "none", stroke: s.color, "stroke-width": 2,
+                        "stroke-linejoin": "round", "stroke-linecap": "round" }, svg);
+    // A lone point would be invisible as a path, so mark it.
+    if (s.points.length === 1) {
+      el("circle", { cx: sx(s.points[0][0]), cy: sy(s.points[0][1]), r: 4, fill: s.color }, svg);
+    }
+  }
+
+  // Crosshair layer.
+  const crosshair = el("line", { y1: M.top, y2: M.top + ih, stroke: css("--axis"),
+                                 "stroke-width": 1, "stroke-dasharray": "3 3", opacity: 0 }, svg);
+  const dots = live.map(s => el("circle", { r: 4, fill: s.color, stroke: css("--surface-1"),
+                                            "stroke-width": 2, opacity: 0 }, svg));
+  const tip = document.createElement("div");
+  tip.className = "tooltip";
+  wrap.appendChild(tip);
+
+  const hit = el("rect", { x: M.left, y: M.top, width: iw, height: ih, fill: "transparent" }, svg);
+  hit.addEventListener("pointermove", (ev) => {
+    const box = svg.getBoundingClientRect();
+    const px = (ev.clientX - box.left) * (W / box.width);
+    const xv = x0 + (px - M.left) / iw * (x1 - x0);
+
+    crosshair.setAttribute("opacity", 1);
+    let rows = "", anchorY = M.top + ih, found = false, anchorX = px;
+
+    live.forEach((s, i) => {
+      let best = null, bestD = Infinity;
+      for (const p of s.points) {
+        if (!Number.isFinite(p[1])) continue;
+        const d = Math.abs(p[0] - xv);
+        if (d < bestD) { bestD = d; best = p; }
+      }
+      if (!best) { dots[i].setAttribute("opacity", 0); return; }
+      found = true;
+      anchorX = sx(best[0]);
+      dots[i].setAttribute("cx", sx(best[0]));
+      dots[i].setAttribute("cy", sy(best[1]));
+      dots[i].setAttribute("opacity", 1);
+      anchorY = Math.min(anchorY, sy(best[1]));
+      rows += `<div class="row"><span><span class="swatch" style="display:inline-block;background:${s.color}"></span> ${s.name}</span><b>${fmt(best[1], opts.precision ?? 4)}</b></div>`;
+    });
+
+    if (!found) return;
+    crosshair.setAttribute("x1", anchorX);
+    crosshair.setAttribute("x2", anchorX);
+    const nearestX = Math.round(xv);
+    tip.innerHTML = `<div class="head">${opts.xLabel || "step"} ${nearestX.toLocaleString()}</div>${rows}`;
+    const box2 = svg.getBoundingClientRect();
+    tip.style.left = `${anchorX * (box2.width / W)}px`;
+    tip.style.top = `${(anchorY - 10) * (box2.height / H)}px`;
+    tip.style.opacity = 1;
+  });
+  hit.addEventListener("pointerleave", () => {
+    tip.style.opacity = 0;
+    crosshair.setAttribute("opacity", 0);
+    dots.forEach(d => d.setAttribute("opacity", 0));
+  });
+
+  if (series.length >= 2) {
+    const legend = document.createElement("div");
+    legend.className = "legend";
+    legend.innerHTML = series.map(s =>
+      `<span class="item"><span class="swatch" style="background:${s.color}"></span>${s.name}</span>`).join("");
+    container.appendChild(legend);
+  }
+}
+
+/**
+ * Grouped bar chart. groups: [{label, values: [v1, v2]}], series: [{name,color}]
+ */
+function groupedBars(container, groups, series, opts = {}) {
+  container.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "chart-wrap";
+  container.appendChild(wrap);
+
+  if (!groups.length) { wrap.innerHTML = '<div class="empty">No data yet</div>'; return; }
+
+  const W = Math.max(opts.width || container.clientWidth || 460, 320);
+
+  // Category labels are rotated, so the space they need below the axis depends
+  // on how long the longest one is. A fixed margin clips the corner of a long
+  // label ("EmergencyBrake") right out of the viewBox.
+  const LABEL_ROTATION = 35;
+  const radians = LABEL_ROTATION * Math.PI / 180;
+  const longest = Math.max(...groups.map(g => String(g.label).length), 1);
+  const labelWidth = longest * 6.2;  // ~11px system sans
+  const bottom = Math.min(Math.ceil(labelWidth * Math.sin(radians)) + 30, 120);
+
+  const H = (opts.height || 240) + Math.max(bottom - 58, 0);
+  const M = { top: 10, right: 14, bottom, left: 52 };
+  const iw = W - M.left - M.right, ih = H - M.top - M.bottom;
+
+  const all = groups.flatMap(g => g.values).filter(Number.isFinite);
+  let y1 = Math.max(...all, opts.minMax ?? 0.001);
+  const yTicks = niceTicks(0, y1, 4);
+  y1 = Math.max(y1, yTicks[yTicks.length - 1]);
+  const sy = (v) => M.top + ih - (v / y1) * ih;
+
+  const svg = el("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`,
+                          role: "img", "aria-label": opts.title || "chart" }, wrap);
+
+  for (const t of yTicks) {
+    el("line", { x1: M.left, x2: M.left + iw, y1: sy(t), y2: sy(t),
+                 stroke: css("--grid"), "stroke-width": 1 }, svg);
+    const lab = el("text", { x: M.left - 8, y: sy(t) + 4, "text-anchor": "end", class: "tick-label" }, svg);
+    lab.textContent = axisLabel(t);
+  }
+
+  // A reference line at 1.0 marks the Table 1 threshold where charts are ratios.
+  if (opts.thresholdLine && y1 >= opts.thresholdLine) {
+    el("line", { x1: M.left, x2: M.left + iw, y1: sy(opts.thresholdLine), y2: sy(opts.thresholdLine),
+                 stroke: css("--critical"), "stroke-width": 2, "stroke-dasharray": "5 3" }, svg);
+    const lab = el("text", { x: M.left + iw, y: sy(opts.thresholdLine) - 5, "text-anchor": "end" }, svg);
+    lab.setAttribute("fill", css("--critical"));
+    lab.textContent = opts.thresholdLabel || "threshold";
+  }
+
+  const bandWidth = iw / groups.length;
+  const barWidth = Math.min(22, (bandWidth - 10) / series.length);
+  const tip = document.createElement("div");
+  tip.className = "tooltip";
+  wrap.appendChild(tip);
+
+  groups.forEach((g, gi) => {
+    const bandX = M.left + gi * bandWidth;
+    const groupWidth = barWidth * series.length + 2 * (series.length - 1);
+    const startX = bandX + (bandWidth - groupWidth) / 2;
+
+    series.forEach((s, si) => {
+      const v = g.values[si];
+      if (!Number.isFinite(v)) return;
+      // 2px gap between adjacent bars keeps the fills from reading as one mark.
+      const x = startX + si * (barWidth + 2);
+      const y = sy(v), h = Math.max(M.top + ih - y, 1);
+      const r = el("rect", { x, y, width: barWidth, height: h, fill: s.color,
+                             rx: 4, ry: 4 }, svg);
+      // Square off the baseline end: only the data end is rounded.
+      el("rect", { x, y: M.top + ih - Math.min(h, 4), width: barWidth,
+                   height: Math.min(h, 4), fill: s.color }, svg);
+      r.addEventListener("pointerenter", () => {
+        tip.innerHTML = `<div class="head">${g.label}</div>` + series.map((ss, ii) =>
+          `<div class="row"><span><span class="swatch" style="display:inline-block;background:${ss.color}"></span> ${ss.name}</span><b>${fmt(g.values[ii], 3)}</b></div>`).join("");
+        const box = svg.getBoundingClientRect();
+        tip.style.left = `${(bandX + bandWidth / 2) * (box.width / W)}px`;
+        tip.style.top = `${(y - 8) * (box.height / H)}px`;
+        tip.style.opacity = 1;
+      });
+      r.addEventListener("pointerleave", () => { tip.style.opacity = 0; });
+    });
+
+    const labelX = bandX + bandWidth / 2;
+    const labelY = M.top + ih + 16;
+    const lab = el("text", { x: labelX, y: labelY, "text-anchor": "end",
+                             transform: `rotate(-${LABEL_ROTATION} ${labelX} ${labelY})` }, svg);
+    lab.textContent = g.label;
+  });
+
+  const legend = document.createElement("div");
+  legend.className = "legend";
+  legend.innerHTML = series.map(s =>
+    `<span class="item"><span class="swatch" style="background:${s.color}"></span>${s.name}</span>`).join("");
+  container.appendChild(legend);
+}
+
+function card(parent, title, caption) {
+  const node = document.createElement("div");
+  node.className = "card";
+  node.innerHTML = `<h3>${title}</h3><p class="caption">${caption}</p>`;
+  const body = document.createElement("div");
+  node.appendChild(body);
+  parent.appendChild(node);
+  return { node, body };
+}
+
+/**
+ * Build every card shell first, then draw into each one.
+ *
+ * Two passes are required, not stylistic. The grid is auto-fit with `1fr`
+ * tracks, so while the first card is the only child it stretches to the full
+ * row; a chart measuring `clientWidth` at that moment bakes in a width three
+ * times the one the card ends up with, and the SVG is then clipped. Appending
+ * all the shells before measuring gives every body its settled width.
+ */
+function renderCards(root, specs) {
+  root.innerHTML = "";
+  const built = specs.map(spec => ({ spec, made: card(root, spec.title, spec.caption) }));
+  for (const { spec, made } of built) spec.draw(made.body, made.node);
+}
+
+function dataTable(rows, headers) {
+  const wrap = document.createElement("div");
+  wrap.className = "table-wrap";
+  wrap.innerHTML =
+    `<table><thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>` +
+    `<tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  return wrap;
+}
+
+// ---------------------------------------------------------------------------
+// Data plumbing
+// ---------------------------------------------------------------------------
+async function getJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${url}: ${res.status}`);
+  return res.json();
+}
+
+function pick(records, key, xKey = "step") {
+  return records.filter(r => r[key] !== undefined && Number.isFinite(+r[key]))
+                .map(r => [+(r[xKey] ?? 0), +r[key]]);
+}
+
+async function loadRuns() {
+  const runs = await getJSON("/api/runs");
+  const select = $("run-select");
+  const current = state.run;
+  select.innerHTML = runs.map(r =>
+    `<option value="${r.name}">${r.name}${r.status === "running" ? " ●" : ""}</option>`).join("");
+  if (runs.length && (!current || !runs.some(r => r.name === current))) {
+    state.run = runs[0].name;
+  }
+  select.value = state.run || "";
+  renderRunsTable(runs);
+  return runs;
+}
+
+function renderRunsTable(runs) {
+  const table = $("runs-table");
+  if (!runs.length) { table.innerHTML = '<tbody><tr><td class="empty">No runs yet</td></tr></tbody>'; return; }
+  table.innerHTML =
+    `<thead><tr><th>Run</th><th>Status</th><th>Params</th><th>Best val loss</th><th>Checkpoint</th><th>Started</th></tr></thead>
+     <tbody>${runs.map(r => `<tr>
+       <td>${r.name}</td>
+       <td>${r.status}</td>
+       <td>${r.model_parameters ? (r.model_parameters / 1e6).toFixed(1) + "M" : "—"}</td>
+       <td>${r.best_val !== null && r.best_val !== undefined ? fmt(r.best_val, 4) : "—"}</td>
+       <td>${r.has_checkpoint ? "yes" : "—"}</td>
+       <td>${r.started ? new Date(r.started * 1000).toLocaleString() : "—"}</td>
+     </tr>`).join("")}</tbody>`;
+}
+
+async function refreshRun(reset) {
+  if (!state.run) return;
+  if (reset) { state.offset = 0; state.train = []; state.val = []; state.events = []; }
+
+  try { state.manifest = await getJSON(`/api/runs/${state.run}/manifest`); }
+  catch { state.manifest = null; }
+
+  const data = await getJSON(`/api/runs/${state.run}/metrics?offset=${state.offset}`);
+  state.offset = data.offset;
+  for (const r of data.records) {
+    if (r.event) state.events.push(r);
+    else if (r["val/loss/total"] !== undefined) state.val.push(r);
+    else if (r["loss/total"] !== undefined) state.train.push(r);
+  }
+
+  renderStatus();
+  renderTiles();
+  renderCharts();
+  renderSafety();
+  await renderBench();
+}
+
+function renderStatus() {
+  const status = state.manifest?.status || "unknown";
+  $("status-dot").className = `dot ${status}`;
+  const last = state.train[state.train.length - 1];
+  const total = state.manifest?.total_steps;
+  $("status-text").textContent = last && total
+    ? `${status} · step ${last.step}/${total}`
+    : status;
+}
+
+function renderTiles() {
+  const t = $("tiles");
+  const last = state.train[state.train.length - 1] || {};
+  const lastVal = state.val[state.val.length - 1] || {};
+  const bestVal = state.val.length ? Math.min(...state.val.map(v => v["val/loss/total"])) : null;
+  const m = state.manifest || {};
+
+  // Mean predicted violation rate across the six metrics: the headline
+  // defensive-driving number.
+  const violationKeys = Object.keys(lastVal).filter(k => k.startsWith("val/violation_rate_pred/"));
+  const meanViolation = violationKeys.length
+    ? violationKeys.reduce((a, k) => a + lastVal[k], 0) / violationKeys.length : null;
+  const trueKeys = Object.keys(lastVal).filter(k => k.startsWith("val/violation_rate_true/"));
+  const meanTrue = trueKeys.length
+    ? trueKeys.reduce((a, k) => a + lastVal[k], 0) / trueKeys.length : null;
+
+  const tiles = [
+    ["Epoch", last.epoch !== undefined ? `${last.epoch}` : "—",
+     m.total_steps ? `step ${fmtInt(last.step)} of ${fmtInt(m.total_steps)}` : ""],
+    ["Best val loss", bestVal !== null ? fmt(bestVal, 4) : "—",
+     `latest ${fmt(lastVal["val/loss/total"], 4)}`],
+    ["Val ADE", fmt(lastVal["val/metric/ade"], 3),
+     `FDE ${fmt(lastVal["val/metric/fde"], 3)} · metres`],
+    ["Safety violation rate", meanViolation !== null ? `${(meanViolation * 100).toFixed(1)}%` : "—",
+     meanTrue !== null ? `expert measured ${(meanTrue * 100).toFixed(1)}%` : "predicted, mean of 6 metrics"],
+    ["Parameters", m.model_parameters ? `${(m.model_parameters / 1e6).toFixed(1)}M` : "—",
+     m.device || ""],
+    ["Peak GPU", last.gpu_mb ? `${(last.gpu_mb / 1000).toFixed(2)} GB` : "—",
+     m.train_frames ? `${fmtInt(m.train_frames)} train frames` : ""],
+  ];
+  t.innerHTML = tiles.map(([label, value, sub]) =>
+    `<div class="tile"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`).join("");
+}
+
+function drawLines(body, series, opts) {
+  state.tableView
+    ? body.appendChild(tableFor(series, "step"))
+    : lineChart(body, series, opts);
+}
+
+function renderCharts() {
+  const componentKeys = [
+    ["loss/plan", "planning"], ["loss/safety", "safety Huber"],
+    ["loss/agent_box", "agent box"], ["loss/map_pts", "map points"],
+    ["loss/mode_safety", "mode safety"], ["loss/mode_score", "mode score"],
+  ];
+
+  renderCards($("charts"), [
+    {
+      title: "Total loss",
+      caption: "Sum of every weighted term. Validation is evaluated once per epoch.",
+      draw: (body) => drawLines(body, [
+        { name: "train", color: css("--series-1"), points: pick(state.train, "loss/total") },
+        { name: "validation", color: css("--series-2"), points: pick(state.val, "val/loss/total") },
+      ], { title: "Total loss", zeroBase: true }),
+    },
+    {
+      title: "Trajectory error",
+      caption: "Displacement between the selected trajectory and the expert's, in metres.",
+      draw: (body) => drawLines(body, [
+        { name: "ADE (val)", color: css("--series-1"), points: pick(state.val, "val/metric/ade") },
+        { name: "FDE (val)", color: css("--series-2"), points: pick(state.val, "val/metric/fde") },
+        { name: "ADE (train)", color: css("--series-3"), points: pick(state.train, "metric/ade") },
+      ], { title: "Trajectory error", zeroBase: true, precision: 3 }),
+    },
+    {
+      title: "Loss components",
+      caption: "How the total splits across the planning, perception and safety tasks.",
+      draw: (body) => drawLines(body, componentKeys.map(([k, name], i) => ({
+        name, color: css(SERIES[i]), points: pick(state.train, k),
+      })), { title: "Loss components", zeroBase: true }),
+    },
+    {
+      title: "Learning rate",
+      caption: "Cosine schedule after linear warm-up. The backbone runs at 0.1x this.",
+      draw: (body) => drawLines(body, [
+        { name: "lr", color: css("--series-1"), points: pick(state.train, "lr") },
+      ], { title: "Learning rate", precision: 6 }),
+    },
+  ]);
+}
+
+const METRIC_LABELS = {
+  lon_accel: "lon accel", lat_accel: "lat accel",
+  lon_jerk: "lon jerk", lat_jerk: "lat jerk",
+  following_gap: "following gap", speed: "speed",
+};
+
+function renderSafety() {
+  const names = Object.keys(METRIC_LABELS);
+  const lastVal = state.val[state.val.length - 1];
+  const waiting = (body) => {
+    body.innerHTML = '<div class="empty">Waiting for the first validation pass</div>';
+  };
+
+  renderCards($("safety-charts"), [
+    {
+      title: "Safety Huber by metric",
+      caption: "The asymmetric threshold-aware term, split across the six metrics of Table 1.",
+      draw: (body) => drawLines(body, names.map((n, i) => ({
+        name: METRIC_LABELS[n], color: css(SERIES[i]),
+        points: pick(state.train, `safety_huber/${n}`),
+      })), { title: "Safety Huber by metric", zeroBase: true }),
+    },
+    {
+      title: "Threshold violation rate",
+      caption: "Fraction of validation frames above the Table 1 threshold. Model prediction against the expert's measurement — closer bars mean the safety head has learnt the metric.",
+      draw: (body) => {
+        if (!lastVal) return waiting(body);
+        const groups = names.map(n => ({
+          label: METRIC_LABELS[n],
+          values: [lastVal[`val/violation_rate_pred/${n}`], lastVal[`val/violation_rate_true/${n}`]],
+        })).filter(g => g.values.some(Number.isFinite));
+        state.tableView
+          ? body.appendChild(dataTable(
+              groups.map(g => [g.label, fmt(g.values[0], 4), fmt(g.values[1], 4)]),
+              ["metric", "predicted", "measured"]))
+          : groupedBars(body, groups, [
+              { name: "predicted", color: css("--series-1") },
+              { name: "measured", color: css("--series-2") },
+            ], { title: "Violation rate", minMax: 0.05 });
+      },
+    },
+    {
+      title: "Ratio prediction error",
+      caption: "Mean absolute error of the predicted violation ratio. 1.0 on this scale is one whole threshold's worth of error.",
+      draw: (body) => {
+        if (!lastVal) return waiting(body);
+        const groups = names.map(n => ({
+          label: METRIC_LABELS[n], values: [lastVal[`val/ratio_mae/${n}`]],
+        })).filter(g => Number.isFinite(g.values[0]));
+        state.tableView
+          ? body.appendChild(dataTable(groups.map(g => [g.label, fmt(g.values[0], 4)]), ["metric", "MAE"]))
+          : groupedBars(body, groups, [{ name: "ratio MAE", color: css("--series-1") }],
+                        { title: "Ratio MAE", minMax: 0.1 });
+      },
+    },
+  ]);
+}
+
+function tableFor(series, xLabel) {
+  const xs = [...new Set(series.flatMap(s => s.points.map(p => p[0])))].sort((a, b) => a - b);
+  const rows = xs.map(x => [
+    fmtInt(x),
+    ...series.map(s => { const p = s.points.find(q => q[0] === x); return p ? fmt(p[1], 5) : "—"; }),
+  ]);
+  return dataTable(rows.slice(-200), [xLabel, ...series.map(s => s.name)]);
+}
+
+// Bench2Drive target: DriveTransformer-L (DS 63.46 / SR 35.01) plus 9 points.
+const B2D_BASELINE = { ds: 63.46, sr: 35.01, name: "DriveTransformer-L" };
+const B2D_TARGET = { ds: 72.46, sr: 44.01 };
+
+async function renderBench() {
+  const section = $("bench-section");
+  const cardNode = $("bench-card");
+  let data;
+  try { data = await getJSON(`/api/runs/${state.run}/eval`); } catch { data = { available: false }; }
+
+  if (!data.available) { section.classList.add("hidden"); return; }
+  section.classList.remove("hidden");
+
+  const ds = data.driving_score, sr = data.success_rate;
+  const dsPass = Number.isFinite(ds) && ds >= B2D_TARGET.ds;
+  const srPass = Number.isFinite(sr) && sr >= B2D_TARGET.sr;
+
+  cardNode.innerHTML = `
+    <h3>Closed-loop result</h3>
+    <p class="caption">${fmtInt(data.routes_completed)} of ${fmtInt(data.routes_total)} routes.
+       Target is the ${B2D_BASELINE.name} baseline plus 9 points.</p>
+    <div class="tiles" style="margin-bottom:16px">
+      <div class="tile"><div class="label">Driving Score</div>
+        <div class="value">${fmt(ds, 2)}</div>
+        <div class="sub">target ${B2D_TARGET.ds} · baseline ${B2D_BASELINE.ds}
+          <span class="pill ${dsPass ? "pass" : "fail"}">${dsPass ? "met" : "not met"}</span></div></div>
+      <div class="tile"><div class="label">Success Rate</div>
+        <div class="value">${fmt(sr, 2)}</div>
+        <div class="sub">target ${B2D_TARGET.sr} · baseline ${B2D_BASELINE.sr}
+          <span class="pill ${srPass ? "pass" : "fail"}">${srPass ? "met" : "not met"}</span></div></div>
+      <div class="tile"><div class="label">Delta vs baseline</div>
+        <div class="value">${Number.isFinite(ds) ? (ds - B2D_BASELINE.ds >= 0 ? "+" : "") + fmt(ds - B2D_BASELINE.ds, 2) : "—"}</div>
+        <div class="sub">Driving Score points</div></div>
+    </div>`;
+
+  if (data.abilities && Object.keys(data.abilities).length) {
+    const groups = Object.entries(data.abilities).map(([k, v]) => ({ label: k, values: [v] }));
+    const holder = document.createElement("div");
+    holder.innerHTML = `<h3>Multi-ability breakdown</h3><p class="caption">Bench2Drive's per-skill success rates.</p>`;
+    const body = document.createElement("div");
+    holder.appendChild(body);
+    cardNode.appendChild(holder);
+    state.tableView
+      ? body.appendChild(dataTable(groups.map(g => [g.label, fmt(g.values[0], 2)]), ["ability", "success rate"]))
+      : groupedBars(body, groups, [{ name: "success rate", color: css("--series-1") }],
+                    { title: "Ability breakdown", height: 260 });
+  }
+}
+
+async function renderVideos() {
+  const videos = await getJSON("/api/videos").catch(() => []);
+  const section = $("videos-section");
+  if (!videos.length) { section.classList.add("hidden"); return; }
+  section.classList.remove("hidden");
+  $("videos").innerHTML = videos.map(v => `
+    <div class="card">
+      <h3>${v.name}</h3>
+      <p class="caption">${v.meta.episode ? `episode ${v.meta.episode} · ` : ""}${v.size_mb} MB</p>
+      <video controls preload="metadata" src="${v.url}"></video>
+      <div class="meta">${v.meta.driving_score !== undefined
+        ? `Driving Score ${fmt(v.meta.driving_score, 2)} · ` : ""}${
+        v.meta.compliance_score !== undefined
+        ? `compliance ${(v.meta.compliance_score * 100).toFixed(1)}%` : ""}</div>
+    </div>`).join("");
+}
+
+async function renderDataset() {
+  const data = await getJSON("/api/dataset").catch(() => ({ available: false }));
+  const section = $("dataset-section");
+  if (!data.available) { section.classList.add("hidden"); return; }
+  section.classList.remove("hidden");
+
+  const rows = data.episodes.map(e => [
+    e.episode, e.town || "—", e.weather || "—", fmtInt(e.frames),
+    e.compliance ? `${(e.compliance.compliance_score * 100).toFixed(1)}%` : "—",
+    e.compliance ? (e.compliance.passed ? '<span class="pill pass">clean</span>'
+                                        : '<span class="pill fail">infractions</span>') : "—",
+  ]);
+  $("dataset-card").innerHTML =
+    `<h3>Collected episodes</h3>
+     <p class="caption">${fmtInt(data.accepted)} accepted · ${fmtInt(data.rejected)} rejected attempts ·
+        ${fmtInt(data.total_frames)} frames · <code>${data.root}</code></p>`;
+  $("dataset-card").appendChild(dataTable(rows,
+    ["episode", "town", "weather", "frames", "compliance", "hard constraints"]));
+}
+
+// ---------------------------------------------------------------------------
+// Wiring
+// ---------------------------------------------------------------------------
+$("run-select").addEventListener("change", (e) => { state.run = e.target.value; refreshRun(true); });
+$("live-toggle").addEventListener("click", (e) => {
+  state.live = !state.live;
+  e.target.setAttribute("aria-pressed", String(state.live));
+});
+$("table-toggle").addEventListener("click", (e) => {
+  state.tableView = !state.tableView;
+  e.target.setAttribute("aria-pressed", String(state.tableView));
+  renderCharts(); renderSafety(); renderBench();
+});
+$("theme-toggle").addEventListener("click", () => {
+  const root = document.documentElement;
+  const dark = root.getAttribute("data-theme") === "dark"
+    || (!root.hasAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+  root.setAttribute("data-theme", dark ? "light" : "dark");
+  renderCharts(); renderSafety(); renderBench();
+});
+
+let resizeTimer;
+addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { renderCharts(); renderSafety(); }, 150);
+});
+
+async function tick() {
+  try {
+    await loadRuns();
+    await refreshRun(false);
+    await renderVideos();
+    await renderDataset();
+  } catch (err) { console.error(err); }
+}
+
+(async function start() {
+  await loadRuns();
+  await refreshRun(true);
+  await renderVideos();
+  await renderDataset();
+  setInterval(() => { if (state.live) tick(); }, 4000);
+})();
+</script>
+</body>
+</html>

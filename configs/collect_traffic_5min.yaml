@@ -1,0 +1,42 @@
+# Five-minute dense-traffic run on Town10HD.
+#
+# Same traffic setup as collect_traffic_town10.yaml -- vehicles seeded ahead of
+# the ego and in the opposing lane (D59) -- but 6000 frames at 20 Hz, i.e. five
+# minutes of continuous driving rather than 45 seconds.
+#
+# Two consequences worth knowing before running it:
+#
+#   * ~36000 images (6 cameras x 6000 frames), roughly 1.3 GB on disk, and the
+#     rendered video is several hundred MB.
+#   * The 70% rule is applied over the whole five minutes, so a bad stretch
+#     anywhere in it counts. The collector aborts an attempt as soon as the
+#     target becomes arithmetically unreachable, which on a long episode can be
+#     several minutes in.
+#
+# Writes to its own directory so no existing dataset or video is disturbed.
+out_dir: data/dav_traffic_5min
+episodes: 1
+frames_per_episode: 6000
+image_width: 400
+image_height: 225
+fps: 20
+
+num_vehicles: 70
+num_pedestrians: 25
+lead_vehicles: 6
+oncoming_vehicles: 6
+lead_spacing: 18.0
+oncoming_spacing: 22.0
+
+warmup_frames: 40
+towns: ["Town10HD"]
+seed: 7777
+max_attempts_per_episode: 3
+jpeg_quality: 90
+carla_host: 127.0.0.1
+carla_port: 2000
+traffic_manager_port: 8000
+timeout: 300.0
+allow_infractions: false
+min_compliance: 0.70
+trace_csv: true

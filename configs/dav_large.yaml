@@ -1,0 +1,88 @@
+# dav-large -- the DriveTransformer-Large scale configuration.
+#
+# This is the configuration the thesis describes: full-resolution six-camera
+# input, a large backbone, and the full query budget. It does NOT fit on a
+# 6 GB GPU. Target hardware is 4x A100 40 GB or better, which is what Chapter 3
+# reports using ("around 5 days for a single training run with 1.2+ million
+# images and 4 GPU's").
+#
+# Launch with torchrun for multi-GPU:
+#   torchrun --nproc_per_node=4 -m dav.train --config configs/dav_large.yaml
+#
+# Note: dav.train currently runs single-process. Multi-GPU requires wrapping
+# the model in DistributedDataParallel; see DOCUMENTATION.md, limitation L3.
+
+name: dav_large
+
+model:
+  backbone: resnet101
+  pretrained: true
+  num_cameras: 6
+  image_size: [384, 704]
+  backbone_out_indices: [1, 2, 3]
+
+  dim: 512
+  num_blocks: 6
+  num_heads: 8
+  ffn_ratio: 4.0
+  dropout: 0.1
+
+  num_agent_queries: 256
+  num_map_queries: 128
+  num_plan_queries: 1
+
+  num_agent_classes: 10
+  num_map_classes: 3
+  map_points: 20
+  motion_steps: 6
+  horizon: 6
+
+  temporal_length: 8
+  use_temporal: true
+
+  use_safety_query: true
+  use_safety_pe: true
+  use_safety_planning_head: true
+  use_safety_temporal: true
+
+  grad_checkpointing: true
+
+data:
+  root: data/dav_full
+  val_fraction: 0.15
+  split_seed: 0
+  num_workers: 8
+  max_agents: 64
+  max_map: 32
+  # Collection runs at 20 Hz. Stride 10 puts 0.5 s between waypoints, so
+  # horizon 6 covers 3 s of future -- the nuScenes/DriveTransformer interval.
+  waypoint_stride: 10
+
+train:
+  epochs: 24
+  batch_size: 4          # per GPU
+  val_batch_size: 4
+  grad_accum: 2          # effective batch 32 across 4 GPUs
+  lr: 2.0e-4
+  backbone_lr_mult: 0.1
+  weight_decay: 0.01
+  grad_clip: 1.0
+  warmup_steps: 2000
+  precision: bf16        # A100 and newer; use "amp" on V100
+  log_every: 50
+  seed: 0
+
+safety:
+  delta: 0.1
+  alpha: 5.0
+  literal_thesis_formula: false
+
+loss_weights:
+  plan: 1.0
+  agent_cls: 1.0
+  agent_box: 1.0
+  map_cls: 0.5
+  map_pts: 0.5
+  safety: 1.0
+  mode_safety: 0.5
+  mode_score: 0.2

@@ -1,0 +1,27 @@
+# Full collection, exactly as Chapter 3 specifies.
+#
+# 50 episodes x 3000 frames = 150,000 keyframes = 900,000 images across
+# 11 weather presets and 8 towns.
+#
+# Cost on one RTX 4050: roughly 2.5-4 days wall clock (CARLA runs at about
+# 12-18 fps in synchronous mode with 60 vehicles and six 800x450 cameras
+# attached), and 300-600 GB on disk. Rejected episodes add to both figures.
+# Launch it detached and let it run:
+#   nohup bash scripts/collect_data.sh configs/collect_full.yaml > collect.log 2>&1 &
+out_dir: data/dav_full
+episodes: 50
+frames_per_episode: 3000
+image_width: 800
+image_height: 450
+fps: 20
+num_vehicles: 60
+num_pedestrians: 30
+warmup_frames: 60
+seed: 20260810
+max_attempts_per_episode: 3
+jpeg_quality: 90
+carla_host: 127.0.0.1
+carla_port: 2000
+traffic_manager_port: 8000
+timeout: 120.0
+allow_infractions: false

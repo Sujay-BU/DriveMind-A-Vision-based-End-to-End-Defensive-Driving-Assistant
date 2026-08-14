@@ -1,0 +1,36 @@
+# Pilot restricted to a single town -- the configuration this machine can
+# actually run (D54).
+#
+# The six-camera nuScenes rig plus a CARLA town does not fit in 6 GB of VRAM
+# for every map. Measured on an RTX 4050 (6141 MiB) with the discrete GPU
+# correctly engaged: the world alone occupies ~4.96 GB on Town02, leaving under
+# 800 MiB, and the simulator dies attaching the fifth camera. Town01 is lighter
+# and runs the full rig -- a complete 1000-frame episode was collected at 73.6%
+# compliance.
+#
+# So this trades *town* diversity for *weather* diversity: eight episodes on
+# Town01 across eight weather presets, which still exercises the wet, low
+# visibility and night branches of Table 1 that the thresholds are conditional
+# on. `collect_pilot.yaml` keeps the full eight-town schedule for a machine
+# with more VRAM; nothing but `towns` differs.
+out_dir: data/dav_pilot
+episodes: 8
+frames_per_episode: 1000
+image_width: 400
+image_height: 225
+fps: 20
+num_vehicles: 40
+num_pedestrians: 20
+warmup_frames: 40
+towns: ["Town01"]
+seed: 1234
+max_attempts_per_episode: 3
+jpeg_quality: 90
+carla_host: 127.0.0.1
+carla_port: 2000
+traffic_manager_port: 8000
+# See D52: the deadline has to suit the disk, not the CPU.
+timeout: 300.0
+allow_infractions: false
+min_compliance: 0.70
+trace_csv: true

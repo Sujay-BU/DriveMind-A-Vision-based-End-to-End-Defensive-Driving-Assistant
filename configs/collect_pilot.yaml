@@ -1,0 +1,33 @@
+# Pilot collection -- validates the whole pipeline in a few hours on one GPU.
+#
+# 8 episodes x 1000 frames = 8,000 keyframes = 48,000 images.
+# Covers 8 towns and 8 of the 11 weather presets (the round-robin walks both
+# lists together, so a run of 11 or more episodes covers every weather).
+# Roughly 6-9 GB on disk at 400x225 JPEG quality 90.
+out_dir: data/dav_pilot
+episodes: 8
+frames_per_episode: 1000
+image_width: 400
+image_height: 225
+fps: 20
+num_vehicles: 40
+num_pedestrians: 20
+warmup_frames: 40
+seed: 1234
+max_attempts_per_episode: 3
+jpeg_quality: 90
+carla_host: 127.0.0.1
+carla_port: 2000
+traffic_manager_port: 8000
+# D52: the per-RPC deadline must suit the disk, not the CPU. Booting a town
+# leaves the engine streaming assets for a while after it first answers RPCs,
+# and spawning 60 actors into that then exceeded a 60 s deadline -- which
+# surfaces as an *uncaught* carla::client::TimeoutException on a client stream
+# thread, aborting the process (SIGABRT) rather than raising into Python.
+timeout: 300.0
+allow_infractions: false
+#: Chapter 3's hard-constraint reading (reject on a single infraction) is not
+#: attainable -- see D22. Episodes are accepted on a compliance *rate*.
+min_compliance: 0.70
+#: Per-frame CSV alongside each episode, for auditing the expert.
+trace_csv: true

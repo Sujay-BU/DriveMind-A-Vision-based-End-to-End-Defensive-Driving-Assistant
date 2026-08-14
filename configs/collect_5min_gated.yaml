@@ -1,0 +1,47 @@
+# Five-minute traffic run on Town10HD, with the compliance gate ENFORCED.
+#
+# Unlike collect_traffic_5min_record.yaml, this keeps ``allow_infractions:
+# false``, so the episode has to earn its place: at least 70% of frames free of
+# every Table 1 infraction, no collision, and the motion guard satisfied. A
+# score of exactly 70.00% is accepted -- the comparison is strictly less-than,
+# and the printed figure now carries two decimals because ``.1%`` rounded
+# 69.98% to "70.0%" and made a genuine near-miss look like a rejection at the
+# threshold.
+#
+# Run after D64 corrected red-light handling. Two defects were fixed there: the
+# stop-line distance was Euclidean rather than signed, so the expert's stopping
+# ceiling *rose* once past the line, and the evaluator only required a stop
+# within a 1 m band, which made driving through a red light register as ~0.2%
+# of frames instead of as a violation.
+#
+# Traffic is the same shape as the previous run -- seeded ahead and oncoming,
+# so the following-distance and give-way rules are exercised -- at the density
+# that lets the ego actually drive rather than gridlock (D63).
+out_dir: data/dav_5min_v2
+episodes: 1
+frames_per_episode: 6000
+image_width: 400
+image_height: 225
+fps: 20
+
+num_vehicles: 40
+num_pedestrians: 20
+lead_vehicles: 4
+oncoming_vehicles: 6
+lead_spacing: 18.0
+oncoming_spacing: 22.0
+
+warmup_frames: 40
+towns: ["Town10HD"]
+# Seed 9021 deterministically collides with a roadline at frame 2564, so it
+# would burn the first attempt of every supervisor cycle.
+seed: 9101
+max_attempts_per_episode: 5
+jpeg_quality: 90
+carla_host: 127.0.0.1
+carla_port: 2000
+traffic_manager_port: 8000
+timeout: 300.0
+allow_infractions: false
+min_compliance: 0.70
+trace_csv: true

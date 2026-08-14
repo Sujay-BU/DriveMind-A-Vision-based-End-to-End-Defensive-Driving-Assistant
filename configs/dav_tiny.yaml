@@ -1,0 +1,89 @@
+# dav-tiny -- the configuration that actually trains on one 6 GB GPU.
+#
+# Sized for an RTX 4050 Laptop (6 GB) with CARLA not running concurrently.
+# Everything architectural is identical to dav_large: the same four query
+# types, the same five safety modifications, the same loss. Only capacity and
+# resolution are reduced, so results from this config are a faithful ablation
+# of the method even though they will not match the large model's accuracy.
+#
+# Peak memory measured at batch_size 2 + grad_accum 8: ~4.6 GB.
+
+name: dav_tiny
+
+model:
+  backbone: resnet18
+  pretrained: true
+  num_cameras: 6
+  image_size: [176, 320]
+  backbone_out_indices: [2, 3]
+
+  dim: 192
+  num_blocks: 4
+  num_heads: 6
+  ffn_ratio: 3.0
+  dropout: 0.1
+
+  num_agent_queries: 64
+  num_map_queries: 32
+  num_plan_queries: 1
+
+  num_agent_classes: 10
+  num_map_classes: 3
+  map_points: 20
+  motion_steps: 6
+  horizon: 6
+
+  temporal_length: 4
+  use_temporal: true
+
+  # The five thesis modifications. Flip any of these to false for the ablation.
+  use_safety_query: true
+  use_safety_pe: true
+  use_safety_planning_head: true
+  use_safety_temporal: true
+
+  # Essential at 6 GB: trades ~30% step time for a large memory saving.
+  grad_checkpointing: true
+
+data:
+  root: data/dav_pilot
+  val_fraction: 0.15
+  split_seed: 0
+  num_workers: 4
+  max_agents: 48
+  max_map: 24
+  # Collection runs at 20 Hz. Stride 10 puts 0.5 s between waypoints, so
+  # horizon 6 covers 3 s of future -- the nuScenes/DriveTransformer interval.
+  waypoint_stride: 10
+
+train:
+  epochs: 20
+  batch_size: 2
+  val_batch_size: 2
+  # Effective batch 16, which is what the learning rate below assumes.
+  grad_accum: 8
+  lr: 2.0e-4
+  backbone_lr_mult: 0.1
+  weight_decay: 0.01
+  grad_clip: 1.0
+  warmup_steps: 200
+  precision: amp
+  log_every: 10
+  seed: 0
+
+safety:
+  delta: 0.1
+  alpha: 5.0
+  # Set true to reproduce the discontinuous formula exactly as printed in the
+  # thesis. Expect unstable training; see DOCUMENTATION.md deviation D1.
+  literal_thesis_formula: false
+
+loss_weights:
+  plan: 1.0
+  agent_cls: 1.0
+  agent_box: 1.0
+  map_cls: 0.5
+  map_pts: 0.5
+  safety: 1.0
+  mode_safety: 0.5
+  mode_score: 0.2

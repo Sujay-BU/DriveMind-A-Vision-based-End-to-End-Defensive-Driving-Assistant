@@ -1,0 +1,43 @@
+# Dense-traffic test run on a different map.
+#
+# Three differences from the pilot:
+#
+#   * Town10HD instead of Town01. It is CARLA's boot map, so no runtime map
+#     switch is needed -- that switch is what exhausts VRAM with the six-camera
+#     rig on this machine (D54), and Town10HD has been run repeatedly here with
+#     all six cameras.
+#   * Heavier traffic: 70 scattered vehicles against the pilot's 40, in a dense
+#     downtown map rather than a sparse grid.
+#   * Vehicles seeded *relative to the ego* (D59) rather than only at random
+#     spawn points: six ahead in the ego's own lane and six in the opposing
+#     lane. Random placement leaves it to chance whether the ego meets a lead
+#     vehicle or oncoming traffic at all -- one pilot episode registered a lead
+#     vehicle in 2.2% of frames with forty cars on the map.
+#
+# Writes to its own directory so the pilot dataset and its videos are untouched.
+out_dir: data/dav_traffic
+episodes: 2
+frames_per_episode: 900
+image_width: 400
+image_height: 225
+fps: 20
+
+num_vehicles: 70
+num_pedestrians: 25
+lead_vehicles: 6
+oncoming_vehicles: 6
+lead_spacing: 18.0
+oncoming_spacing: 22.0
+
+warmup_frames: 40
+towns: ["Town10HD"]
+seed: 4242
+max_attempts_per_episode: 3
+jpeg_quality: 90
+carla_host: 127.0.0.1
+carla_port: 2000
+traffic_manager_port: 8000
+timeout: 300.0
+allow_infractions: false
+min_compliance: 0.70
+trace_csv: true

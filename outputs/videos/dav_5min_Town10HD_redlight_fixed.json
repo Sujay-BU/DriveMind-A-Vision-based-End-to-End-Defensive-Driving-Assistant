@@ -1,0 +1,13 @@
+{
+  "episode": "ep000_Town10HD_ClearNoon",
+  "run": "pilot_real_20260813-043355",
+  "checkpoint": "runs/pilot_real_20260813-043355/best.pt",
+  "ranked_by": "compliance",
+  "rank_score": 0.8783333333333333,
+  "frames": 5940,
+  "fps": 20,
+  "mean_ade": 1.0317454079611335,
+  "compliance_score": 0.8872053872053872,
+  "town": "Town10HD",
+  "weather": "ClearNoon"
+}
